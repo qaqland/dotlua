@@ -1,7 +1,7 @@
 project(
     'dotlua',
     'c',
-    license: 'GPL-3.0-or-later',
+    license: 'GPL-3.0-only',
 )
 
 bash = dependency('bash')

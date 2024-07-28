@@ -15,19 +15,17 @@ enable -d dotlua
 
 functions are unstable now, see tests for detail
 
-### DONE
+## PLAN
 
-- dotlua xxx.lua
-- dotlua -f function
-
-### TODO
-
-- dotlua xxx.lua -- args
-- dotlua -s "string lua"
-
-- lua c api fix
-- valgrind check
-- clang format
+| status | item                      |
+| ------ | ------------------------- |
+| done   | `dotlua xxx.lua`          |
+| done   | `dotlua -f function args` |
+|        | `dotlua xxx.lua -- args`  |
+|        | `dotlua -s "string lua"`  |
+|        | lua c api fix             |
+|        | valgrind check            |
+|        | clang format              |
 
 ## setup
 
@@ -50,14 +48,15 @@ meson compile -C builddir
 
 ## LICENSE
 
-TODO
+GPL-3.0-only
 
-## references
+## Acknowledge
 
-TODO
+This project is highly inspired by [LuaBash][1].
 
-- <http://git.savannah.gnu.org/cgit/bash.git/>
-- <https://www.codingwiththomas.com/blog/a-lua-c-api-cheat-sheet>
-- <https://github.com/cjungmann/bash_builtin>
-- <https://github.com/alfredopalhares/LuaBash>
-- <https://stackoverflow.com/questions/5406858/difference-between-unset-and-empty-variables-in-bash>
+Start to DIY your own built from this [blog][2] and get more builtin example and details in [bash_builtin][3] and [bash][4] itself.
+
+[1]: https://github.com/alfredopalhares/LuaBash
+[2]: https://blog.dario-hamidi.de/a/build-a-bash-builtin
+[3]: https://github.com/cjungmann/bash_builtin
+[4]: http://git.savannah.gnu.org/cgit/bash.git/
