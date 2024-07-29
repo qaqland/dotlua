@@ -1,4 +1,4 @@
 -- get nil if unset
-a = dotlua.getshvar("a")
+a = dotlua.get("a")
 
 print("a=" .. a)

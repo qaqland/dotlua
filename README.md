@@ -1,8 +1,8 @@
-# dotlua
+# DotLua
 
-dotlua help to run lua code with bash shell
+DotLua help to run lua code with bash shell
 
-## usage
+## Usage
 
 ```bash
 #!/usr/bin/env bash
@@ -13,21 +13,49 @@ dotlua abuild.lua
 enable -d dotlua
 ```
 
-functions are unstable now, see tests for detail
+functions are unstable and, see tests for detail
 
-## PLAN
+```bash
+# export foo
+sh.put("foo")
+# export foo=bar
+sh.put("foo", "bar")
+
+# foo=bar
+sh.set("foo", "bar")
+# $foo
+sh.get("foo")
+
+# unset foo
+sh.delete("foo")
+
+# bind lua func to shell
+sh.bind("add_2_number")
+
+# call shell func from lua
+sh.call("call_two", 1, 2)
+# check result
+rc = sh.call("call_zero")
+
+# catch stdout/stderr?
+# TODO
+```
+
+## Plan
 
 | status | item                      |
 | ------ | ------------------------- |
 | done   | `dotlua xxx.lua`          |
+| done   | `dotlua xxx.lua -- args`  |
+| done   | `dotlua -s "string lua"`  |
 | done   | `dotlua -f function args` |
-|        | `dotlua xxx.lua -- args`  |
-|        | `dotlua -s "string lua"`  |
+|        | call shell built-ins      |
+|        | call shell `cd`           |
 |        | lua c api fix             |
 |        | valgrind check            |
 |        | clang format              |
 
-## setup
+## Setup
 
 ```bash
 # apk add bash (?)
@@ -38,12 +66,12 @@ meson setup builddir
 meson compile -C builddir
 ```
 
-### test
+### Test
 
 ```bash
 # apk add shunit2
 
-./tests/test.sh
+./tests/_test.sh
 ```
 
 ## LICENSE
@@ -54,7 +82,8 @@ GPL-3.0-only
 
 This project is highly inspired by [LuaBash][1].
 
-Start to DIY your own built from this [blog][2] and get more builtin example and details in [bash_builtin][3] and [bash][4] itself.
+Start to DIY your own built from this [blog][2] and get more builtin example
+and details in [bash_builtin][3] and [bash][4] itself.
 
 [1]: https://github.com/alfredopalhares/LuaBash
 [2]: https://blog.dario-hamidi.de/a/build-a-bash-builtin

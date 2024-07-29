@@ -1,4 +1,7 @@
-UseTab: Always
+BasedOnStyle: LLVM
+UseTab: AlignWithSpaces
 IndentWidth: 4
 TabWidth: 4
-AlignAfterOpenBracket: AlwaysBreak
+AlignAfterOpenBracket: Align
+AlignArrayOfStructures: Right
+AllowShortFunctionsOnASingleLine: None
