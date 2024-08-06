@@ -1,5 +1,5 @@
 BasedOnStyle: LLVM
-UseTab: AlignWithSpaces
+UseTab: ForIndentation
 IndentWidth: 4
 TabWidth: 4
 AlignAfterOpenBracket: Align

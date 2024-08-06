@@ -2,7 +2,7 @@ project(
     'dotlua',
     'c',
     license: 'GPL-3.0-only',
-    version: '0.0.1',
+    version: '0.0.2',
 
 )
 

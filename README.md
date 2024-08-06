@@ -1,59 +1,27 @@
-# DotLua
+# dotlua
 
-DotLua help to run lua code with bash shell
+dotlua help to run lua code with bash shell
+
+- Call lua function from shell and vice versa
+- Get, set and export shell variables directly from lua
 
 ## Usage
 
 ```bash
-#!/usr/bin/env bash
-enable -f dotlua.so dotlua
+$ enable -f path/to/dotlua.so dotlua
 
-dotlua abuild.lua
+# dot lua
+$ dotlua -s 'print(_VERSION)'
 
-enable -d dotlua
+# remove
+$ enable -d dotlua
 ```
 
-functions are unstable and, see tests for detail
+It is recommended to start your bash script with `env`
 
 ```bash
-# export foo
-sh.put("foo")
-# export foo=bar
-sh.put("foo", "bar")
-
-# foo=bar
-sh.set("foo", "bar")
-# $foo
-sh.get("foo")
-
-# unset foo
-sh.delete("foo")
-
-# bind lua func to shell
-sh.bind("add_2_number")
-
-# call shell func from lua
-sh.call("call_two", 1, 2)
-# check result
-rc = sh.call("call_zero")
-
-# catch stdout/stderr?
-# TODO
+#!/usr/bin/env bash
 ```
-
-## Plan
-
-| status | item                      |
-| ------ | ------------------------- |
-| done   | `dotlua xxx.lua`          |
-| done   | `dotlua xxx.lua -- args`  |
-| done   | `dotlua -s "string lua"`  |
-| done   | `dotlua -f function args` |
-|        | call shell built-ins      |
-|        | call shell `cd`           |
-|        | lua c api fix             |
-|        | valgrind check            |
-|        | clang format              |
 
 ## Setup
 
@@ -66,23 +34,130 @@ meson setup builddir
 meson compile -C builddir
 ```
 
-### Test
+## CLI
+
+### Source File
 
 ```bash
-# apk add shunit2
+$ dotlua FILE [ARGUMENTS ...]
+```
 
-./tests/_test.sh
+### Call Function
+
+```bash
+$ dotlua [-r] -f FUNCTION [ARGUMENTS ...]
+```
+
+Option `-r` allow you to call the raw function.
+
+### Execute String
+
+```bash
+$ dotlua -s "LUA STRING"
+```
+
+### List Lua Bindings
+
+```bash
+$ dotlua -l [PATTERN]
+```
+
+## API
+
+Set env `DOTLUA_PREFIX` to override default namespace `sh`
+
+### `sh.put()` WIP
+
+```lua
+-- export foo
+sh.put("foo")
+
+-- export foo=bar
+sh.put("foo", "bar")
+```
+
+### `sh.set()`
+
+```lua
+-- foo=bar
+sh.set("foo", "bar")
+```
+
+### `sh.get()`
+
+```lua
+-- $foo
+sh.get("foo")
+```
+
+### `sh.delete()` WIP
+
+```lua
+-- unset foo
+sh.delete("foo")
+```
+
+### `sh.bind()`
+
+```lua
+sh.bind("add_2_number")
+sh.bind("add-2-number", add_2_number)
+```
+
+Call lua function from shell after binding
+
+### `sh.call()`
+
+```lua
+sh.call("call_two", 1, 2)
+```
+
+Call shell function from lua
+
+### `sh.F`
+
+Store function bindings
+
+## TODO
+
+- [x] `dotlua xxx.lua`
+- [x] `dotlua xxx.lua -- args`
+- [x] `dotlua -s "string lua"`
+- [x] `dotlua -f function args`
+- [x] `dotlua -l match`
+- [ ] call shell built-ins
+- [ ] call shell `cd`
+- [ ] lua c api fix
+- [ ] valgrind check
+- [ ] clang format
+- [ ] catch stdout/stderr?
+- [ ] lua function return
+- [ ] put (export)
+- [ ] delete (unset)
+
+## Test
+
+```bash
+# apk add bats
+
+bats tests
 ```
 
 ## LICENSE
 
-GPL-3.0-only
+Copyright (C) 2024 qaqland
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 ## Acknowledge
 
 This project is highly inspired by [LuaBash][1].
 
-Start to DIY your own built from this [blog][2] and get more builtin example
+Start to make your own builtin from this [blog][2] and get more builtin example
 and details in [bash_builtin][3] and [bash][4] itself.
 
 [1]: https://github.com/alfredopalhares/LuaBash
