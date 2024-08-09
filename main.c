@@ -1,20 +1,18 @@
-#include <lauxlib.h>
-#include <loadables.h>
-#include <lua.h>
-#include <lualib.h>
+#include <dlfcn.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
 
-// please put <execute_cmd.h> the last
-#include <execute_cmd.h>
+#include <lauxlib.h>
+#include <loadables.h>
+#include <lua.h>
+#include <lualib.h>
 
 // keep status like bash's source
 static lua_State *DotL;
-static const char *prefix;
+const char *prefix;
 
 struct config {
 	bool source_file; // default
@@ -27,95 +25,22 @@ struct config {
 	WORD_LIST *list;
 };
 
-struct config config;
+static struct config config;
 static const struct config config_init;
 
-static int get_shell_var(lua_State *L) {
-	const char *sname = luaL_checkstring(L, 1);
-	SHELL_VAR *svar = find_variable(sname);
-	// check if svar is function, array or other unsupported type
-	const char *svalue = svar ? value_cell(svar) : NULL;
-	lua_pushstring(L, svalue); // Lua would check this internal
-	return 1;
-}
-
-static int set_shell_var(lua_State *L) {
-	const char *sname = luaL_checkstring(L, 1);
-	const char *svalue = luaL_checkstring(L, 2);
-	// check if svar is function, array or other unsupported type
-	// check if svar is readonly
-	bind_variable(sname, strdup(svalue), 0); // TODO ? bash manage this value?
-	return 0;
-}
-
-static int put_shell_var(lua_State *L) {
-	return 0;
-}
-
-// prepare sh.F table store all binds
-static int bind_lua_func(lua_State *L) {
-	const char *func = luaL_checkstring(L, 1);
-	int n = lua_gettop(L); // 1 or 2
-	if (n == 1) {
-		if (lua_getglobal(L, func) != LUA_TFUNCTION) {
-			builtin_error("%s: unknow lua function", func); // FIX error
-		}
-	} else {
-		luaL_checktype(L, 2, LUA_TFUNCTION);
-	}
-	COMMAND *cmd = make_bare_simple_command();
-	WORD_LIST *list = xmalloc(sizeof(*list));
-	list->next = NULL;
-	cmd->value.Simple->words = list;
-	const char *tmp[] = {"dotlua", "-f", func, "$@", NULL};
-	for (const char **ptr = tmp; *ptr; ptr++) {
-		if (list == list->next) {
-			list->next = xmalloc(sizeof(*list));
-			list = list->next;
-		}
-		list->word = make_word(*ptr);
-		list->next = list;
-	}
-	list->next = NULL;
-	bind_function(func, cmd);
-	lua_getglobal(L, prefix); // 3
-	lua_getfield(L, 3, "F");  // 4
-	lua_insert(L, 1);         // put sh.F at 1
-	lua_pop(L, 1);            // pop sh
-	lua_settable(L, 1);
-	return 0;
-}
-
-static int call_shell_fn(lua_State *L) {
-	int n = lua_gettop(L);
-	const char *func = luaL_checkstring(L, 1);
-	SHELL_VAR *svar = find_function(func);
-	if (!svar) {
-		builtin_error("%s: unknow shell function", func); // FIX error
-		return 0;
-	}
-	WORD_LIST *list = xmalloc(sizeof(*list));
-	WORD_LIST *head = list;
-	list->word = make_word(func);
-	for (int i = 2; i <= n; i++) {
-		const char *arg = lua_tostring(L, i);
-		list->next = xmalloc(sizeof(*list));
-		list = list->next;
-		list->word = make_word(arg);
-	}
-	list->next = NULL;
-	int retval = execute_shell_function(svar, head);
-	lua_pushinteger(L, retval);
-	return 1;
-}
+extern int dotlua_sh_put(lua_State *L);
+extern int dotlua_sh_get(lua_State *L);
+extern int dotlua_sh_set(lua_State *L);
+extern int dotlua_sh_call(lua_State *L);
+extern int dotlua_sh_bind(lua_State *L);
 
 static const struct luaL_Reg dotlua[] = {
-    { "put", put_shell_var},
-    { "get", get_shell_var},
-    { "set", set_shell_var},
-    {"bind", bind_lua_func},
-    {"call", call_shell_fn},
-    {  NULL,          NULL},
+    { "put",  dotlua_sh_put},
+    { "get",  dotlua_sh_get},
+    { "set",  dotlua_sh_set},
+    {"bind", dotlua_sh_bind},
+    {"call", dotlua_sh_call},
+    {  NULL,           NULL},
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -134,18 +59,18 @@ static void _log(const char *fmt, ...) {
 	va_start(argptr, fmt);
 	vfprintf(stderr, fmt, argptr);
 	va_end(argptr);
+	putchar('\n');
 }
 
 static int dot_source_file(lua_State *L) {
 	// use the first argument as filename
 	const char *filename = config.list->word->word;
 	if (access(filename, R_OK) != 0) {
-		_log("%s: No Lua File\n", filename);
+		_log("%s: No Lua File", filename);
 		return EXECUTION_FAILURE;
 	}
-	// [-0, +1, e]
 	if (luaL_loadfile(L, filename) != LUA_OK) {
-		_log("%s: Load Error\n", filename);
+		_log("%s: Load Error", filename);
 		goto lua_error;
 	}
 	WORD_LIST *list = config.list;
@@ -158,15 +83,13 @@ static int dot_source_file(lua_State *L) {
 		lua_pushstring(L, list->word->word);
 		argc++;
 	}
-	// [-(nargs + 1), +(nresults|1), –]
 	if (lua_pcall(L, argc, 0, 0) != LUA_OK) {
-		_log("%s: Exection Error\n", filename);
+		_log("%s: Exection Error", filename);
 		goto lua_error;
 	}
 	return EXECUTION_SUCCESS;
 
 lua_error:
-	// [-0, +0, e]
 	fprintf(stderr, "%s\n", lua_tostring(L, -1));
 	lua_settop(L, 0);
 	return EXECUTION_FAILURE;
@@ -176,35 +99,35 @@ static int dot_call_function(lua_State *L) {
 	const char *func = config.optarg;
 	if (config.raw_call) {
 		if (lua_getglobal(L, func) != LUA_TFUNCTION) {
-			_log("%s: Not Lua Function(RAW)\n", func);
+			_log("%s: Not Lua Function(RAW)", func);
 			goto lua_exit;
 		}
 	} else {
 		lua_getglobal(L, prefix);
 		lua_getfield(L, -1, "F");
 		if (lua_getfield(L, -1, func) != LUA_TFUNCTION) {
-			_log("%s: Not Lua Function(BIND)\n", func);
+			_log("%s: Not Lua Function(BIND)", func);
 			goto lua_exit;
 		}
 	}
 	int argc = 0;
 	for (WORD_LIST *list = config.list; list; list = list->next) {
-		// [-0, +1, e]
 		lua_pushstring(L, list->word->word);
 		argc++;
 	}
-	// [-(nargs + 1), +(nresults|1), –]
-	if (lua_pcall(L, argc, 0, 0) != LUA_OK) {
-		_log("%s: Function Error\n", func);
+	if (lua_pcall(L, argc, 1, 0) != LUA_OK) {
+		_log("%s: Function Error", func);
 		goto lua_error;
 	}
 
-	// lua return code?
+	// return nil means success
+	if (!lua_isnil(L, 1)) {
+		goto lua_exit;
+	}
 	lua_settop(L, 0);
 	return EXECUTION_SUCCESS;
 
 lua_error:
-	// [-0, +0, e]
 	fprintf(stderr, "%s\n", lua_tostring(L, -1));
 lua_exit:
 	lua_settop(L, 0);
@@ -213,16 +136,16 @@ lua_exit:
 
 static int dot_execute_string(lua_State *L) {
 	const char *codestr = config.optarg;
-	// [-0, +?, –]
 	if (luaL_dostring(L, codestr) != LUA_OK) {
-		_log("Code Error\n");
+		_log("Code Error");
 		goto lua_error;
 	}
 	lua_settop(L, 0);
 	return EXECUTION_SUCCESS;
 
+	// string is usually short, no return nil check
+
 lua_error:
-	// [-0, +0, e]
 	fprintf(stderr, "%s\n", lua_tostring(L, -1));
 	lua_settop(L, 0);
 	return EXECUTION_FAILURE;
@@ -246,6 +169,7 @@ static int dot_list_lua_bind(lua_State *L) {
 		}
 		lua_pop(L, 1);
 	}
+	fflush(stdout);
 	lua_settop(L, 0);
 	return EXECUTION_SUCCESS;
 }
@@ -299,7 +223,8 @@ int dotlua_builtin(WORD_LIST *list) {
 		return dot_list_lua_bind(DotL);
 	}
 	if (config.version) {
-		printf("dotlua %s\n", VERSION); // define in meson
+		printf("dotlua %s\n", PROJ_VERSION);
+		fflush(stdout);
 		return EXECUTION_SUCCESS;
 	}
 	return dot_source_file(DotL);
@@ -307,12 +232,26 @@ int dotlua_builtin(WORD_LIST *list) {
 
 int dotlua_builtin_load(char *s) {
 	(void)s;
+	void *handle = dlopen(PROJ_LUA_SO_PATH, RTLD_NOW | RTLD_GLOBAL);
+	if (!handle) {
+		// fprintf(stderr, "error load liblua-5.4.so: %s\n", dlerror());
+		builtin_error("error load liblua.so: %s", dlerror());
+		return 0;
+	}
+
 	DotL = luaL_newstate();
 	luaL_openlibs(DotL);
+
 	luaL_newlib(DotL, dotlua); // +1
-	lua_pushstring(DotL, "F");
+
+	lua_pushliteral(DotL, "F");
 	lua_newtable(DotL);
 	lua_settable(DotL, 1); // -2
+
+	lua_pushliteral(DotL, "version");
+	lua_pushliteral(DotL, PROJ_VERSION);
+	lua_settable(DotL, 1);
+
 	prefix = getenv("DOTLUA_PREFIX");
 	prefix = prefix ? prefix : "sh";
 	lua_setglobal(DotL, prefix);
@@ -321,7 +260,9 @@ int dotlua_builtin_load(char *s) {
 
 void dotlua_builtin_unload(char *s) {
 	(void)s;
+	// clean functions from sh.F in bash?
 	lua_close(DotL);
+	dlclose(PROJ_LUA_SO_PATH);
 }
 
 char *dotlua_long_doc[] = {
