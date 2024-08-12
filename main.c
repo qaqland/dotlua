@@ -31,16 +31,18 @@ static const struct config config_init;
 extern int dotlua_sh_put(lua_State *L);
 extern int dotlua_sh_get(lua_State *L);
 extern int dotlua_sh_set(lua_State *L);
+extern int dotlua_sh_delete(lua_State *L);
 extern int dotlua_sh_call(lua_State *L);
 extern int dotlua_sh_bind(lua_State *L);
 
 static const struct luaL_Reg dotlua[] = {
-    { "put",  dotlua_sh_put},
-    { "get",  dotlua_sh_get},
-    { "set",  dotlua_sh_set},
-    {"bind", dotlua_sh_bind},
-    {"call", dotlua_sh_call},
-    {  NULL,           NULL},
+    {   "put",    dotlua_sh_put},
+    {   "get",    dotlua_sh_get},
+    {   "set",    dotlua_sh_set},
+    {"delete", dotlua_sh_delete},
+    {  "bind",   dotlua_sh_bind},
+    {  "call",   dotlua_sh_call},
+    {    NULL,             NULL},
 };
 
 ///////////////////////////////////////////////////////////////////////////////
