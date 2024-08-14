@@ -66,7 +66,7 @@ $ dotlua -l [PATTERN]
 
 Set env `DOTLUA_PREFIX` to override default namespace `sh`
 
-### `sh.put()` WIP
+### `sh.put()`
 
 ```lua
 -- export foo
@@ -90,7 +90,7 @@ sh.set("foo", "bar")
 sh.get("foo")
 ```
 
-### `sh.delete()` WIP
+### `sh.delete()`
 
 ```lua
 -- unset foo
@@ -125,15 +125,15 @@ Store function bindings
 - [x] `dotlua -s "string lua"`
 - [x] `dotlua -f function args`
 - [x] `dotlua -l match`
-- [ ] call shell built-ins
-- [ ] call shell `cd`
-- [ ] lua c api fix
+- [x] call shell built-ins
+- [x] call shell `cd`
+- [x] lua c api fix
 - [ ] valgrind check
-- [ ] clang format
+- [x] clang format
 - [ ] catch stdout/stderr?
-- [ ] lua function return
-- [ ] put (export)
-- [ ] delete (unset)
+- [x] lua function return
+- [x] put (export)
+- [x] delete (unset)
 
 ## Test
 

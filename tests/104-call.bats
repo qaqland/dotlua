@@ -38,9 +38,20 @@ exit_1() {
 	assert_output -p 'tests'
 }
 
-@test "sh.call builtin" {
+@test "sh.call builtin pwd" {
 	# pwd: unknow shell function
-	skip "not implement"
+	# skip "not implement"
 	run dotlua -s 'sh.call("pwd")'
 	assert_output -p 'tests'
+}
+
+@test "sh.call builtin cd" {
+	dotlua -s 'sh.call("cd", "lua")'
+	run dotlua -s 'sh.call("pwd", "-P")'
+	assert_output -p 'tests/lua'
+}
+
+@test "sh.call binrary" {
+	run dotlua -s 'sh.call("git", "--version")'
+	assert_output -p 'git version'
 }

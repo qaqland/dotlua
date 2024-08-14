@@ -8,13 +8,11 @@
 
 int dotlua_sh_call(lua_State *L) {
 	int n = lua_gettop(L);
+	// function, builtin or outside binrary
 	const char *func = luaL_checkstring(L, 1);
-	SHELL_VAR *svar = find_function(func);
-	if (!svar) {
-		return luaL_error(L, "%s: unknow shell function", func);
-	}
 	WORD_LIST *list = xmalloc(sizeof(*list));
-	WORD_LIST *head = list;
+	COMMAND *cmd = make_bare_simple_command();
+	cmd->value.Simple->words = list;
 	list->word = make_word(func);
 	for (int i = 2; i <= n; i++) {
 		const char *arg = lua_tostring(L, i);
@@ -23,7 +21,7 @@ int dotlua_sh_call(lua_State *L) {
 		list->word = make_word(arg);
 	}
 	list->next = NULL;
-	int retval = execute_shell_function(svar, head);
+	int retval = execute_command(cmd);
 	lua_pushinteger(L, retval);
 	return 1;
 }
